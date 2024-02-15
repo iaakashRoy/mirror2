@@ -10,9 +10,7 @@ Project Mirror2 is not just another run-of-the-mill project; it's an evolving ma
 
 At this stage, we're all about those sleek and sophisticated PDF files! 📚 Our mission? To streamline the process of extracting information from these documents. 💡
 
-## Our Objective
 
-Ever wished you could effortlessly pinpoint the answers to your burning questions within those dense PDFs? Well, that's precisely what we're here for! 🎯 Picture this: with Project Mirror2, we'll highlight the precise portions of your PDFs containing the golden nuggets of information you seek! 🌟✨
 
 ## Stay Tuned!
 
