@@ -15,25 +15,55 @@ from stqdm import stqdm
 from sentence_transformers import SentenceTransformer, util
 import chromadb
 import torch
+#import get_llm
+import json
+import requests
 import warnings
 warnings. filterwarnings("ignore")
 embedder = SentenceTransformer ('all-MiniLM-L6-v2')
 
+stream = False
 
+url = "https://chat.tune.app/api/chat/completions"
+headers = {
+    "Authorization": "tune-b4042fc3-b3ae-4b05-a24e-b26dc3b2c0241708053579",
+    "Content-Type": "application/json"
+}
 
 class gpt_chunking:       
     
+    def get_completion(query):
+        data = {
+            "temperature": 0.5,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are assistant of an ai company named 'mirror2', here to help anyone with their personal documents"
+                },
+                {
+                    "role": "user",
+                    "content": "Act like, you're the assistant smart, genuine person"
+                }
+            ],
+            "model": "mixtral-8x7b-inst-v0-1-32k",
+            "stream": stream,
+            "max_tokens": 300
+        }
+        response =  requests.post(url, headers=headers, json=data).json()
+        response = response['choices'][0]['message']
+        return response ['content']
+
     #Function to get the chat completion
-    def get_completion(prompt, model="gpt-4-8k-0613"):
-        messages = [{"role": "user", "content": prompt}]
-        response = openai.ChatCompletion.create(
-            model=model,
-            messages=messages,
-            temperature=0, # this is the degree of randomness of the model's output
-        )
-        response = json.loads(response)
-        #return response
-        return response["choices"][0]["message"]["content"]
+    # def get_completion(prompt, model="gpt-4-8k-0613"):
+    #     messages = [{"role": "user", "content": prompt}]
+    #     response = openai.ChatCompletion.create(
+    #         model=model,
+    #         messages=messages,
+    #         temperature=0, # this is the degree of randomness of the model's output
+    #     )
+    #     response = json.loads(response)
+    #     #return response
+    #     return response["choices"][0]["message"]["content"]
     
     #Function for creation of the instruction to extract rhe headings and the informationn according to the available data
     """text: Introduction \\n This part defines the transformer architecture. \\n 1.1 Encoder \\n This is the application of the multi headed system.... \\n Decoder\\n ...
