@@ -16,6 +16,7 @@ from sentence_transformers import SentenceTransformer, util
 import chromadb
 import torch
 #import get_llm
+import local_llm
 import json
 import requests
 import warnings
@@ -108,7 +109,8 @@ class gpt_chunking:
     
     def organise(text):
         
-        return gpt_chunking.get_completion(gpt_chunking.get_headings_prompt(text))
+        #return gpt_chunking.get_completion(gpt_chunking.get_headings_prompt(text))
+        return local_llm.get_answer(gpt_chunking.get_headings_prompt(text))
     
     def process(text='', parent_size = 6, num_childs = 3, cores=mp.cpu_count(), batch_size = 10):
         
@@ -261,7 +263,8 @@ class qa_processing:
             top_res.append(top_parents[i])
             updated_top_parents.append(top_parents[i])
 
-        answer = gpt_chunking.get_completion(qa_processing.make_categorize_conversation_prompt(query, top_res))
+        #answer = gpt_chunking.get_completion(qa_processing.make_categorize_conversation_prompt(query, top_res))
+        answer = local_llm.get_answer(qa_processing.make_categorize_conversation_prompt(query, top_res))
         
         return answer, top_childs, updated_top_parents
 

@@ -18,7 +18,6 @@ client = chromadb.PersistentClient(path=r"/home/roy_aakash/Downloads/mirror2_loc
 embedder = SentenceTransformer ('all-MiniLM-L6-v2')
 
 
-
 #Function to upload and process the PDF
 
 def upload_and_process_pdf():
