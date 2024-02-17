@@ -10,7 +10,7 @@ headers = {
 }
 
 
-def ai_out(query):
+def get_completion(query):
     data = {
         "temperature": 0.5,
         "messages": [
