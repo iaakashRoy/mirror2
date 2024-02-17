@@ -23,71 +23,9 @@ import warnings
 warnings. filterwarnings("ignore")
 embedder = SentenceTransformer ('all-MiniLM-L6-v2')
 
-stream = False
-
-url = "https://chat.tune.app/api/chat/completions"
-headers = {
-    "Authorization": "tune-b4042fc3-b3ae-4b05-a24e-b26dc3b2c0241708053579",
-    "Content-Type": "application/json"
-}
 
 class gpt_chunking:       
-    
-    def get_completion(query):
-        data = {
-            "temperature": 0.5,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are assistant of an ai company named 'mirror2', here to help anyone with their personal documents"
-                },
-                {
-                    "role": "user",
-                    "content": "Act like, you're the assistant smart, genuine person"
-                }
-            ],
-            "model": "mixtral-8x7b-inst-v0-1-32k",
-            "stream": stream,
-            "max_tokens": 300
-        }
-        response =  requests.post(url, headers=headers, json=data).json()
-        response = response['choices'][0]['message']
-        return response ['content']
 
-    #Function to get the chat completion
-    # def get_completion(prompt, model="gpt-4-8k-0613"):
-    #     messages = [{"role": "user", "content": prompt}]
-    #     response = openai.ChatCompletion.create(
-    #         model=model,
-    #         messages=messages,
-    #         temperature=0, # this is the degree of randomness of the model's output
-    #     )
-    #     response = json.loads(response)
-    #     #return response
-    #     return response["choices"][0]["message"]["content"]
-    
-    #Function for creation of the instruction to extract rhe headings and the informationn according to the available data
-    """text: Introduction \\n This part defines the transformer architecture. \\n 1.1 Encoder \\n This is the application of the multi headed system.... \\n Decoder\\n ...
-       output: {'Introduction':[' This part defines the transformer architecture.', {'Encoder' : ['This is the application of the multi headed system....'], 'Decoder': ['...']}]}
-    """
-
-
-    #One-shot
-    def get_headings_prompt(tex):
-        string = {'Model Architecture': ['Most competitive neural sequence transduction models have an encoder-decoder structure [ 5,2,29].\nHere, the encoder maps an input sequence of symbol representations (x1;:::;x n)to a sequence\nof continuous representations z= (z1;:::;z n). Given z, the decoder then generates an output\nsequence (y1;:::;y m)of symbols one element at a time. At each step the model is auto-regressive\n[9], consuming the previously generated symbols as additional input when generating the next.\nThe Transformer follows this overall architecture using stacked self-attention and point-wise, fully\nconnected layers for both the encoder and decoder, shown in the left and right halves of Figure 1,\nrespectively.', {'Encoder and Decoder Stacks': ['', {'Encoder':['The encoder is composed of a stack of N= 6 identical layers. Each layer has two\nsub-layers. The ﬁrst is a multi-head self-attention mechanism, and the second is a simple, position-\n2Figure 1: The Transformer - model architecture.\nwise fully connected feed-forward network. We employ a residual connection [ 10] around each of\nthe two sub-layers, followed by layer normalization [ 1]. That is, the outputof each sub-layer is\nLayerNorm( x+ Sublayer( x)), where Sublayer(x)is the function implemented by the sub-layer\nitself. To facilitate these residual connections, all sub-layers in the model, as well as the embedding\nlayers, produce outputs of dimension dmodel = 512 .', {}], 'Decoder':[' The decoder is also composed of a stack of N= 6identical layers. In addition to the two\nsub-layers in each encoder layer, the decoder inserts a third sub-layer, which performs multi-head\nattention over the output of the encoder stack. Similar to the encoder, we employ residual connections\naround each of the sub-layers, followed by layer normalization. We also modify the self-attention\nsub-layer in the decoder stack to prevent positions from attending to subsequent positions.', {}]}]}]}
-        instruction = f"""
-        You will be given some text and you have to figure out the headings and sub-headings from the given text as follows: //
-        Example: //
-        text_1: \n3 Model Architecture\nMost competitive neural sequence transduction models have an encoder-decoder structure [ 5,2,29].\nHere, the encoder maps an input sequence of symbol representations (x1;:::;x n)to a sequence\nof continuous representations z= (z1;:::;z n). Given z, the decoder then generates an output\nsequence (y1;:::;y m)of symbols one element at a time. At each step the model is auto-regressive\n[9], consuming the previously generated symbols as additional input when generating the next.\nThe Transformer follows this overall architecture using stacked self-attention and point-wise, fully\nconnected layers for both the encoder and decoder, shown in the left and right halves of Figure 1,\nrespectively.\n3.1 Encoder and Decoder Stacks\nEncoder: The encoder is composed of a stack of N= 6 identical layers. Each layer has two\nsub-layers. The ﬁrst is a multi-head self-attention mechanism, and the second is a simple, position-\n2Figure 1: The Transformer - model architecture.\nwise fully connected feed-forward network. We employ a residual connection [ 10] around each of\nthe two sub-layers, followed by layer normalization [ 1]. That is, the output of each sub-layer is\nLayerNorm( x+ Sublayer( x)), where Sublayer(x)is the function implemented by the sub-layer\nitself. To facilitate these residual connections, all sub-layers in the model, as well as the embedding\nlayers, produce outputs of dimension dmodel = 512 .\nDecoder: The decoder is also composed of a stack of N= 6identical layers. In addition to the two\nsub-layers in each encoder layer, the decoder inserts a third sub-layer, which performs multi-head\nattention over the output of the encoder stack. Similar to the encoder, we employ residual connections\naround each of the sub-layers, followed by layer normalization. We also modify the self-attention\nsub-layer in the decoder stack to prevent positions from attending to subsequent positions. //
-        output:  {string} //
-        Now comes the real task! //
-        The given text is : {tex} //
-        Give the output for the above text as per the example. //
-        DO NOT add anything extra or modify the text, search the headings and sub-headings from the given text and add accordingly//
-        Must return the output in the python dictionary format only.
-        """
-
-        return instruction
 
     #Function to slice the data according to the end of sentences given the range
     def slice_text(text, range_start, range_end):
@@ -107,69 +45,6 @@ class gpt_chunking:
 
         return sliced_text
     
-    def organise(text):
-        
-        #return gpt_chunking.get_completion(gpt_chunking.get_headings_prompt(text))
-        return local_llm.get_answer(gpt_chunking.get_headings_prompt(text))
-    
-    def process(text='', parent_size = 6, num_childs = 3, cores=mp.cpu_count(), batch_size = 10):
-        
-        #text pre-processing
-        text = text.replace('\n', ' ')
-        text = text.replace('................................', ' ')
-
-        #creating the parent_child dataframe
-        chunked_df = pd.DataFrame()
-        child_size = parent_size//num_childs 
-        total_sent = len(text.split(". "))
-
-        chunked_df = pd.DataFrame()
-        chunked_df['Parent_data'] = ''
-        chunked_df['Child_data1'] = ''
-        chunked_df['Child_data2'] = ''
-        chunked_df['Child_data3'] = ''
-        #chunked_df['Child_data4'] = ''
-        i = 0
-
-        #Improve this slicing using LLM
-        for index in range(0, total_sent, parent_size): 
-            end_range = min(index + parent_size , total_sent)
-            chunked_df.loc[i, 'Parent_data'] = gpt_chunking.slice_text(text, index, end_range)
-            chunked_df.loc[i, 'Child_data1'] = gpt_chunking.slice_text(text, index, int(min(index + child_size , total_sent)))
-            chunked_df.loc[i, 'Child_data2'] = gpt_chunking.slice_text(text, int(min(index + child_size , total_sent)), int(min(index + 2*child_size , total_sent)))
-            chunked_df.loc[i, 'Child_data3'] = gpt_chunking.slice_text(text, int(min(index + 2*child_size , total_sent)), int(min(index + 3*child_size , total_sent)))
-            #chunked_df.loc[i, 'Child_data4'] = gpt_chunking.slice_text(text, int(min(index + 3*child_size , total_sent)), end_range)
-            i += 1
-
-        pool = ThreadPool(cores)
-
-        total_rows = len(chunked_df['Parent_data'])  # Total number of rows in the dataframe
-
-        #organising the chunks into the dictionary format->improve it using LLM to organise information in a more better way
-        for index in stqdm(range(0, total_rows, batch_size)):
-            end_range = min(index + batch_size , total_rows) 
-            data = chunked_df.iloc[index:end_range]
-            data['Parent_data'] = pool.map(gpt_chunking.organise, data['Parent_data'])
-            data['Child_data1'] = pool.map(gpt_chunking.organise, data['Child_data1'])
-            data['Child_data2'] = pool.map(gpt_chunking.organise, data['Child_data2'])
-            data['Child_data3'] = pool.map(gpt_chunking.organise, data['Child_data3'])
-            #data['Child_data4'] = pool.map(gpt_chunking.organise, data['Child_data4'])
-
-            if index == 0:
-                df_processed = data.copy()
-            else:  
-                df_processed = pd.concat([df_processed, data], axis=0) 
-                
-        parent_chunk = list(df_processed['Parent_data'])
-
-        child_chunk = []
-        for i in range(len(df_processed['Child_data1'])):
-            child_chunk.append(df_processed['Child_data1'][i])
-            child_chunk.append(df_processed['Child_data2'][i])
-            child_chunk.append(df_processed['Child_data3'][i])
-            #child_chunk.append(df_processed['Child_data4'][i])
-
-        return parent_chunk, child_chunk
 
 class qa_processing:
 
