@@ -15,7 +15,7 @@ import re
 from sentence_transformers import SentenceTransformer, util
 db_path = "/home/roy_aakash/Downloads/mirror2_local/mirror2/docs_vectorDB"
 client = chromadb.PersistentClient(path=r"/home/roy_aakash/Downloads/mirror2_local/mirror2/docs_vectorDB")
-embedder = SentenceTransformer ('all-MiniLM-L6-v2')
+embedder = SentenceTransformer('all-MiniLM-L6-v2')
 
 
 #Function to upload and process the PDF
@@ -24,12 +24,11 @@ def upload_and_process_pdf():
     # Write code to upload and process the PDF
     uploaded_file = st.file_uploader('Choose your .pdf file', type="pdf")
 
-    options = ["AI Chunking", "LLAMAsherpa", "Recursive chunking"]
+    options = ["AI Chunking","Slicing Chunking", "LLAMAsherpa", "Recursive chunking"]
     selected_strategy = st.selectbox("Select Chunking Strategy", options)
     # Save processed data in the database
-    if selected_strategy=="AI Chunking":
+    if selected_strategy=="Slicing Chunking":
 
-        collection_child, collection_parent = [], []
         if uploaded_file is not None:
 
             with st.form(key='my_form'):
@@ -38,8 +37,6 @@ def upload_and_process_pdf():
                 submit_button = st.form_submit_button(label='Submit')
 
             if submit_button:
-                child_name = db_name+'_c'
-                parent_name = db_name+'_p'
 
                 if not os.path.isdir(db_path):
                     st.error('The provided folder does not exist. Please provide a valid folder path.')
@@ -51,7 +48,7 @@ def upload_and_process_pdf():
 
                 #st.write(uploaded_file, 'File loaded successfully!')
                 st.markdown('Processing started...')
-                qa_processing.chunk_and_db(text, child_name, parent_name, db_path)
+                qa_processing.chunk_and_db_1(text, db_name, db_path)
                 #parent_chunk, child_chunk = gpt_chunking.process(text=text)
                 st.markdown('Saved into database...')
 

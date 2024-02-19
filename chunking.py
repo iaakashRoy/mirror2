@@ -92,10 +92,6 @@ class qa_processing:
             top_parents_.append((top_parents[idx], score))
         return answer, top_childs_ , top_parents_
 
-    def child_id_to_parent_id(child_id, num_childs):
-        c_id = int(child_id[2:])  #id67 => int 67 
-        p_id = c_id//num_childs  # 67//4 = 16 : 0-3=0, 
-        return 'id'+ str(p_id)  # id16
 
     def split_list(input_list, chunk_size):
         for i in range(0, len(input_list), chunk_size):
@@ -142,8 +138,16 @@ class qa_processing:
         answer = local_llm.get_answer(qa_processing.make_categorize_conversation_prompt(query, top_res))
         
         return answer, top_childs, updated_top_parents
+    
+    def vector_db_1(db_name, chunks, db_path):
+        client = chromadb.PersistentClient(path=db_path)
+        collection_chunk = client.create_collection(db_name)
 
-    def vector_db(child_name, parent_name, child_chunk, parent_chunk, db_path):
+        collection_chunk.add(documents = chunks,
+        ids = list(map(lambda tup: f"id{tup[0]}", enumerate(chunks))))
+
+    def vector_db_2(child_name, parent_name, child_chunk, parent_chunk, db_path):
+
         client = chromadb.PersistentClient(path=db_path)
         collection_child = client.create_collection(child_name)
         collection_parent = client.create_collection(parent_name)
@@ -167,9 +171,39 @@ class qa_processing:
         qa_processing.vector_db(child_name, parent_name, child_chunk, parent_chunk, db_path)
         collection_child, collection_parent = qa_processing.immport_db(child_name, parent_name, db_path)
         answer, top_childs, updated_top_parents = qa_processing.get_answer(query, collection_child, collection_parent, child_top_k=5, parent_top_k=4)
-
         return answer
-    def chunk_and_db(text, child_name, parent_name, db_path):
+
+    def chunk_and_db_1(text, db_name, db_path):
+        parent_chunk, child_chunk = gpt_chunking.process(text=text)
+        try:
+            qa_processing.vector_db_1(child_name, parent_name, child_chunk, parent_chunk, db_path)
+        except:
+            client = chromadb.PersistentClient(path=db_path)
+
+            client.delete_collection(child_name)
+            client.delete_collection(parent_name)
+
+            child_chunk_split = qa_processing.split_list(child_chunk, 140)
+            parent_chunk_split = qa_processing.split_list(parent_chunk, 140)
+            
+            collection_child = client.create_collection(child_name)
+            collection_parent = client.create_collection(parent_name)
+
+            index = 0
+            for splitted_childs in child_chunk_split:
+                
+                collection_child.add(documents = splitted_childs,
+                    ids = ['id'+str(i) for i in range(index, index+len(splitted_childs))])
+                index = index+len(splitted_childs)
+
+            index = 0
+            for splitted_parents in parent_chunk_split:
+                
+                collection_parent.add(documents = splitted_parents,
+                    ids = ['id'+str(i) for i in range(index, index+len(splitted_parents))])
+                index = index+len(splitted_parents)
+    
+    def chunk_and_db_2(text, child_name, parent_name, db_path):
         parent_chunk, child_chunk = gpt_chunking.process(text=text)
         try:
             qa_processing.vector_db(child_name, parent_name, child_chunk, parent_chunk, db_path)
