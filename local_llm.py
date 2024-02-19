@@ -10,7 +10,7 @@ headers = {
 def get_answer(prompt):
 
     data = {
-    "model": "tinydolphin",
+    "model": "phi",  #"tinydolphin",
     "stream": False,
     "prompt": prompt
     }

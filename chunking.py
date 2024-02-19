@@ -24,6 +24,10 @@ warnings. filterwarnings("ignore")
 embedder = SentenceTransformer ('all-MiniLM-L6-v2')
 
 
+#defining he chunking libraries
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+
 class gpt_chunking:       
 
 
@@ -45,14 +49,28 @@ class gpt_chunking:
 
         return sliced_text
     
+    def process_1(text=""):
+        text_splitter = RecursiveCharacterTextSplitter(
+            # Set a really small chunk size, just to show.
+            chunk_size = 256,
+            chunk_overlap  = 20
+        )
+        _chunks = text_splitter.create_documents([text])
+        chunks = []
+        for chunk in _chunks:
+            chunks.append(list(chunk)[0][1])
+
+        return chunks
+
+    
 
 class qa_processing:
 
     def make_categorize_conversation_prompt(query, top_search_results):
-        instructions = f""" You're assigned a task based on the following query: {query}, and you're provided with a selection of key information from top search results: {top_search_results}. //
-        As a chat agent working for a renowned health insurance company, it is expected that your response is concise, informative, and politely-worded. // 
+        instructions = f""" You're assigned a task based on the following query: {query}, and you're provided with a selection of key informations: {top_search_results}. //
+        As a chat agent working professional, it is expected that your response is concise, informative, and politely-worded. // 
         Your task is to formulate an accurate answer using data from the given search results, related specifically to the query. //
-        Be sure to omit any irrelevant data from your composed answer, regardless of its presence in the top information list. //
+        COMPLETE YOUR ANSWER STRICTLY WITHIN 100 WORDS!//
         DO NOT introduce any external information not presented in the search results. This is crucial to prevent the dissemination of incorrect or misleading information. //
         IF NO INFORMATION IS FOUND IN THE GIVEN TOP_SEARCH_RESULTS LIST, MSIMPLY SAY: NO MATCHING DETAILS FOUND IN THE TEXT
         """
@@ -110,34 +128,14 @@ class qa_processing:
 
 
     # collection_child and collection_parent both are chroma data bases
-    def get_answer(query, collection_child, collection_parent, child_top_k=5, parent_top_k=4):
-        result = collection_child.query(query_texts=[query], n_results=child_top_k, include=["documents", 'distances',]) #the way we query in chromadb
-        top_childs = result['documents'][0]
-        top_res = result['documents'][0]
-        top_parents = []
-
-        for ids in result['ids'][0]:
-            document = collection_parent.get(qa_processing.child_id_to_parent_id(ids, 4))['documents'][0]
-            top_parents.append(document)
-
-        query_embedding = embedder.encode(query, convert_to_tensor=True)
-        top_parents_embeddings = embedder.encode(top_parents, convert_to_tensor=True)  
-        cos_scores = util.cos_sim(query_embedding, top_parents_embeddings)[0]  #finding the top of the top parents
-
-        try:
-            top_results_p = torch.topk(cos_scores, k=parent_top_k)
-        except:
-            top_results_p = torch.topk(cos_scores, k = len(top_parents_embeddings))
-
-        updated_top_parents = []
-        for i in top_results_p[1]:
-            top_res.append(top_parents[i])
-            updated_top_parents.append(top_parents[i])
+    def get_answer_1(query, collection_chunk, top_k=5):
+        result = collection_chunk.query(query_texts=[query], n_results=top_k, include=["documents", 'distances',]) #the way we query in chromadb
+        top_chunks = result['documents'][0]
 
         #answer = gpt_chunking.get_completion(qa_processing.make_categorize_conversation_prompt(query, top_res))
-        answer = local_llm.get_answer(qa_processing.make_categorize_conversation_prompt(query, top_res))
+        answer = local_llm.get_answer(qa_processing.make_categorize_conversation_prompt(query, top_chunks))
         
-        return answer, top_childs, updated_top_parents
+        return answer, top_chunks
     
     def vector_db_1(db_name, chunks, db_path):
         client = chromadb.PersistentClient(path=db_path)
@@ -174,39 +172,30 @@ class qa_processing:
         return answer
 
     def chunk_and_db_1(text, db_name, db_path):
-        parent_chunk, child_chunk = gpt_chunking.process(text=text)
+        chunks = gpt_chunking.process_1(text=text)
         try:
-            qa_processing.vector_db_1(child_name, parent_name, child_chunk, parent_chunk, db_path)
+            qa_processing.vector_db_1(db_name, chunks, db_path)
         except:
             client = chromadb.PersistentClient(path=db_path)
 
-            client.delete_collection(child_name)
-            client.delete_collection(parent_name)
+            client.delete_collection(db_name)
 
-            child_chunk_split = qa_processing.split_list(child_chunk, 140)
-            parent_chunk_split = qa_processing.split_list(parent_chunk, 140)
+            chunk_split = qa_processing.split_list(chunks, 140)
             
-            collection_child = client.create_collection(child_name)
-            collection_parent = client.create_collection(parent_name)
+            collection_chunk = client.create_collection(db_name)
 
             index = 0
-            for splitted_childs in child_chunk_split:
+            for splitted_chunks in chunk_split:
                 
-                collection_child.add(documents = splitted_childs,
-                    ids = ['id'+str(i) for i in range(index, index+len(splitted_childs))])
-                index = index+len(splitted_childs)
+                collection_chunk.add(documents = splitted_chunks,
+                    ids = ['id'+str(i) for i in range(index, index+len(splitted_chunks))])
+                index = index+len(splitted_chunks)
 
-            index = 0
-            for splitted_parents in parent_chunk_split:
-                
-                collection_parent.add(documents = splitted_parents,
-                    ids = ['id'+str(i) for i in range(index, index+len(splitted_parents))])
-                index = index+len(splitted_parents)
     
     def chunk_and_db_2(text, child_name, parent_name, db_path):
         parent_chunk, child_chunk = gpt_chunking.process(text=text)
         try:
-            qa_processing.vector_db(child_name, parent_name, child_chunk, parent_chunk, db_path)
+            qa_processing.vector_db_2(child_name, parent_name, child_chunk, parent_chunk, db_path)
         except:
             client = chromadb.PersistentClient(path=db_path)
 

@@ -57,21 +57,19 @@ def upload_and_process_pdf():
 
 # Function to display available databases
 
-def show_available_databases():
+def show_available_databases_1():
     # Write code to fetch and display available databases
     databases = []
     for item in client.list_collections():
-        if str(list(item)[0][1][:-2]) not in databases:
-            databases.append(str(list(item)[0][1][:-2]))
+        databases.append(str(list(item)[0][1]))
     selected_database = st.sidebar.selectbox("Select Database", databases)
-    collection_child = client.get_collection(str(selected_database) + '_c')
-    collection_parent = client.get_collection(str(selected_database) + '_p')
+    collection_chunk = client.get_collection(str(selected_database))
 
-    return collection_child, collection_parent
+    return collection_chunk
 
 
 # Function to display chat UI
-def display_chat_ui(collection_child, collection_parent):
+def display_chat_ui_1(collection_chunk):
     # Write code to display chat UI based on data source
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -87,13 +85,11 @@ def display_chat_ui(collection_child, collection_parent):
 
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
-            response, top_childs, updated_top_parents = qa_processing.get_answer(prompt, collection_child, collection_parent, child_top_k=5, parent_top_k=4)
+            response, top_chunks = qa_processing.get_answer_1(prompt, collection_chunk, top_k=5)
             message_placeholder.markdown(response)
-            try:
-                for context in updated_top_parents[:3]:
-                    st.markdown(qa_processing.convert_dict_to_text(eval(context)))
-            except:
-                st.markdown('')
+            #message_placeholder.markdown("Top chunks:")
+            #message_placeholder.markdown(top_chunks)
+
         st.session_state.messages.append({"role": "assistant", "content": response})
 
     if st.button('Clear Chat'):
@@ -110,8 +106,8 @@ def main():
         upload_and_process_pdf()
         #display_chat_ui(collection_child, collection_parent)
     else:
-        collection_child, collection_parent = show_available_databases()
-        display_chat_ui(collection_child, collection_parent)
+        collection_chunk = show_available_databases_1()
+        display_chat_ui_1(collection_chunk)
 
 if __name__ == "__main__":
     main()
